@@ -4,11 +4,15 @@
 #include <ctype.h>
 
 #define MAX_LINE 1024
+
 void matrix_string(char *rslt, int **matrix, int height, int width){
     int tem;
     for(int i = 0; i<height; i++){
         for(int j = 0; j<width; j++){
 
+            if(matrix[i][j] == 0){
+                strcat(rslt, " - ");
+            }
             if(matrix[i][j] == 1){
                 strcat(rslt, "\033[32m P \033[0m");
             }
@@ -114,6 +118,11 @@ int main(int argc, char *argv[]){
                 j++;
             }
             int recognized = 1;
+            if(c=='_'){
+                matrix[i][j] = 0;
+                last=1;
+                recognized=0;
+            }
             if(c=='p' || c=='P'){
                 matrix[i][j] = 1;
                 last=1;
