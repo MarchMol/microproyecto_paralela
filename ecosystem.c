@@ -3,9 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <omp.h>
 
 #define MAX_LINE 1024
-#define TICKS 10
+#define TICKS 20
 // Códigos de celda
 #define EMPTY 0
 #define PLANT 1
@@ -151,6 +152,7 @@ int main(){
     int **hunH = alloc2d(height,width), **hunC = alloc2d(height,width);
 
     // Simulación por ticks
+    double t0 = omp_get_wtime();
     for(int tick = 0; tick <= TICKS; tick++){
         // Mostrar el estado actual y conteos
         print_matrix_and_counts(current, height, width, tick);
@@ -346,6 +348,8 @@ int main(){
         free2d(hunHn, height);
         free2d(hunCn, height);
     }
+    double t1 = omp_get_wtime();
+    printf("\nTiempo total de simulacion: %.6f segundos\n", t1 - t0);
 
     // Liberar todo
     free2d(eH,   height);
