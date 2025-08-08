@@ -1,4 +1,4 @@
-p p p c p h 
-p p p h h h
-p h c h _ h 
-h h c h cc
+P P P C P H
+_ _ P H H H
+P _ C H _ H
+H H C H C C

@@ -2,39 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #define MAX_LINE 1024
 #define TICKS 20
 
-void matrix_string(char *rslt, int **matrix, int height, int width){
-    int tem;
-    for(int i = 0; i<height; i++){
-        for(int j = 0; j<width; j++){
-
-            if(matrix[i][j] == 0){
-                strcat(rslt, " - ");
-            }
-            if(matrix[i][j] == 1){
-                strcat(rslt, "\033[32m P \033[0m");
-            }
-            if(matrix[i][j] == 2){
-                strcat(rslt, "\033[34m H \033[0m");
-            }
-            if(matrix[i][j] == 3){
-                strcat(rslt, "\033[31m C \033[0m");
-            }
-        }
-        strcat(rslt, "\n");
-    }
-}
-
-void cleanup(
-    FILE *file,
-    char *rslt,
-    int **matrix,
-    int height
-){
-    free(rslt);
+void cleanup(FILE *file, int **matrix, int height){
     fclose(file);
     for (int i = 0; i < height; i++) {
         free(matrix[i]);
@@ -43,32 +16,39 @@ void cleanup(
     printf("Finished cleanup!\n");
 }
 
-int main(int argc, char *argv[]){
-    // if(argc!=3){
-    //     printf("ERROR: arguments should be \"./exe input\"");
-    //     exit(1);
-    // }
+void print_matrix(int **matrix, int height, int width, int tick) {
+    printf("\n--- Tick %d ---\n", tick);
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if(matrix[i][j] == 0) printf(" - ");
+            if(matrix[i][j] == 1) printf("\033[32m P \033[0m");
+            if(matrix[i][j] == 2) printf("\033[34m H \033[0m");
+            if(matrix[i][j] == 3) printf("\033[31m C \033[0m");
+        }
+        printf("\n");
+    }
+    printf("Fin del tick %d\n", tick);
+}
 
-    // Fetch file
+int main(){
+    srand(time(NULL)); 
+
     FILE *file = fopen("input.txt", "r");
     if(!file){
         perror("Opening input failed\n");
         return 1;
     }
 
-    // Character analysis
-
-    // witdth and height
     int width = 0;
     int height = 0;
     char line[MAX_LINE];
     while(fgets(line, sizeof(line), file)){
         line[strcspn(line, "\n")] = 0;
         char *token = strtok(line, " ");
-        height+=1;
+        height += 1;
         if(width == 0){
-            while(token!=NULL){
-                width+=1;
+            while(token != NULL){
+                width += 1;
                 token = strtok(NULL, " ");
             }
         }
@@ -76,109 +56,81 @@ int main(int argc, char *argv[]){
     rewind(file);
     printf("Height: %d\nWidth: %d\n", height, width);
 
-    // Init Matrix
     int **matrix = malloc(height * sizeof(int *));
     for(int i = 0; i < height; i++){
         matrix[i] = malloc(width * sizeof(int));
     }
 
-    // Fill Matrix
-    int i = 0;
-    char line2[MAX_LINE];
     int compliance = 0;
-
-    while(fgets(line2, sizeof(line2), file)){
-        int idx = 0;
-        int j = 0;
-        int last = 0; // 0 = space, 1 = character
-        if(j>=height){
-            printf("Too many rows!!");
-            compliance=1;
-            break;
-        }
-        while(line2[idx]!='\0'){
-            char c = line2[idx];
-            idx++;
-            if(i>=width){
-                compliance=1;
+    char line2[MAX_LINE];
+    int row = 0;
+    while(fgets(line2, sizeof(line2), file) && row < height){
+        int col = 0;
+        char *token = strtok(line2, " \n");
+        while(token != NULL && col < width){
+            if(strcmp(token, "_") == 0 || strcmp(token, "-") == 0){
+                matrix[row][col] = 0;
+            } else if(strcmp(token, "p") == 0 || strcmp(token, "P") == 0){
+                matrix[row][col] = 1;
+            } else if(strcmp(token, "h") == 0 || strcmp(token, "H") == 0){
+                matrix[row][col] = 2;
+            } else if(strcmp(token, "c") == 0 || strcmp(token, "C") == 0){
+                matrix[row][col] = 3;
+            } else {
+                printf("Unrecognized character: \"%s\" at row %d, col %d\n", token, row, col);
+                compliance = 1;
                 break;
             }
-            if(c=='\n'){ // Line breaks
-                i++;
-                last=0;
-                continue;
-            }
-            if(isspace(c)){
-                if(last==1){
-                    j++;
-                    last=0; // 0 = space
-                }
-                continue;
-            }
-            if(last==1){
-                j++;
-            }
-            int recognized = 1;
-            if(c=='_'){
-                matrix[i][j] = 0;
-                last=1;
-                recognized=0;
-            }
-            if(c=='p' || c=='P'){
-                matrix[i][j] = 1;
-                last=1;
-                recognized=0;
-            }
-            if(c=='h' || c=='H'){
-                matrix[i][j] = 2;
-                last=1;
-                recognized=0;
-            }
-            if(c=='c' || c=='C'){
-                matrix[i][j] = 3;
-                last=1;
-                recognized=0;
-            }
-            if(recognized == 1){
-                compliance=1;
-                printf("Unrecognized character: \'%c\'\n",c);
-                break;
-            }
+            col++;
+            token = strtok(NULL, " \n");
         }
+        row++;
     }
 
-    // Compliance test
-
-        
-    // Print Test
-    int strsize = height * width* 10;
-    char *rslt = calloc(strsize, sizeof(char));
-
-    if(compliance==1){
+    if(compliance == 1){
         printf("Something went wrong when parsing input file!\n");
-        cleanup(file, rslt, matrix, height);
+        cleanup(file, matrix, height);
         return 1;
     }
 
-  
     for(int tick = 0; tick <= TICKS; tick++){
-        printf("\n--- Tick %d ---\n", tick);
+        print_matrix(matrix, height, width, tick);
 
-        // Mostrar estado actual
-        rslt[0] = '\0'; // Limpiar string de salida
-        matrix_string(rslt, matrix, height, width);
-        printf("%s", rslt);
+        
+        int **temp_matrix = malloc(height * sizeof(int *));
+        for(int i = 0; i < height; i++){
+            temp_matrix[i] = malloc(width * sizeof(int));
+            memcpy(temp_matrix[i], matrix[i], width * sizeof(int));
+        }
 
+        
         for(int i = 0; i < height; i++){
             for(int j = 0; j < width; j++){
-                int actual = matrix[i][j];
-
-                
+                if(matrix[i][j] == 1){
+                    int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+                    for(int d = 0; d < 4; d++){
+                        int ni = i + dirs[d][0];
+                        int nj = j + dirs[d][1];
+                        if(ni >= 0 && ni < height && nj >= 0 && nj < width){
+                            if(matrix[ni][nj] == 0){
+                                if((rand() % 100) < 30){ 
+                                    temp_matrix[ni][nj] = 1;
+                                    printf("Tick %d: planta en (%d,%d) se reproduce en (%d,%d)\n", tick, i, j, ni, nj);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+
+        for(int i = 0; i < height; i++){
+            memcpy(matrix[i], temp_matrix[i], width * sizeof(int));
+            free(temp_matrix[i]);
+        }
+        free(temp_matrix);
     }
 
-    // Cleanup
-    cleanup(file, rslt, matrix, height);
+    cleanup(file, matrix, height);
     return 0;
 }
