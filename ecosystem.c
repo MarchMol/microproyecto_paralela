@@ -4,6 +4,7 @@
 #include <ctype.h>
 
 #define MAX_LINE 1024
+#define TICKS 20
 
 void matrix_string(char *rslt, int **matrix, int height, int width){
     int tem;
@@ -159,8 +160,23 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    matrix_string(rslt, matrix, height, width);
-    printf("Tick 0:\n%s",rslt);
+  
+    for(int tick = 0; tick <= TICKS; tick++){
+        printf("\n--- Tick %d ---\n", tick);
+
+        // Mostrar estado actual
+        rslt[0] = '\0'; // Limpiar string de salida
+        matrix_string(rslt, matrix, height, width);
+        printf("%s", rslt);
+
+        for(int i = 0; i < height; i++){
+            for(int j = 0; j < width; j++){
+                int actual = matrix[i][j];
+
+                
+            }
+        }
+    }
 
     // Cleanup
     cleanup(file, rslt, matrix, height);
