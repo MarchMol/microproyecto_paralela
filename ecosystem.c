@@ -6,7 +6,7 @@
 #include <omp.h>
 
 #define MAX_LINE 1024
-#define TICKS 20
+#define TICKS 10000
 // Códigos de celda
 #define EMPTY 0
 #define PLANT 1
@@ -155,7 +155,7 @@ int main(){
     double t0 = omp_get_wtime();
     for(int tick = 0; tick <= TICKS; tick++){
         // Mostrar el estado actual y conteos
-        print_matrix_and_counts(current, height, width, tick);
+        // print_matrix_and_counts(current, height, width, tick);
         if(tick == TICKS) break; // no generamos siguiente estado después del último print
 
         // next arranca vacío
