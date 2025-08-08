@@ -1,4 +1,6 @@
-P P P C P H
-_ _ P H H H
-P _ C H _ H
-H H C H C C
+P H _ _ _ C
+_ P P _ C _
+_ _ H P _ _
+P _ _ _ _ P
+_ C _ H _ _
+_ _ P _ _ C
