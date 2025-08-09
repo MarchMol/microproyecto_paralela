@@ -6,7 +6,6 @@
 #include <omp.h>
 
 #define MAX_LINE 1024
-#define TICKS 10000
 // Códigos de celda
 #define EMPTY 0
 #define PLANT 1
@@ -60,7 +59,6 @@ void cleanup(FILE *file, int **matrix, int height){
         free(matrix[i]);
     }
     free(matrix);
-    printf("Finished cleanup!\n");
 }
 
 void print_matrix_and_counts(int **matrix, int height, int width, int tick) {
@@ -81,11 +79,29 @@ void print_matrix_and_counts(int **matrix, int height, int width, int tick) {
     printf("Fin del tick %d\n", tick);
 }
 
-int main(){
+int main(int argc, char *argv[]){
+    // Argumentos
+        if(argc!=4){
+        printf("Wrong usage: %s <input path> <MAX_TICKS> <Verbose>\n", argv[0]);
+        return 1;
+    }
+
+    char *file_path = argv[1];
+    int max_ticks = atoi(argv[2]);
+    if(max_ticks<1){
+        printf("Ticks must be bigger or equal than 1\n");
+        return 1;
+    }
+    int verbose = atoi(argv[3]);
+    if(verbose<0 || verbose>2){
+        printf("Verbose must be either 0, 1 or 2\n");
+        return 1;
+    }
+
     srand((unsigned)time(NULL));
 
     // lectura del archivo de entrada
-    FILE *file = fopen("input.txt", "r");
+    FILE *file = fopen(file_path, "r");
     if(!file){
         perror("Opening input failed\n");
         return 1;
@@ -107,7 +123,9 @@ int main(){
         }
     }
     rewind(file);
-    printf("Height: %d\nWidth: %d\n", height, width);
+    if(verbose>1){
+        printf("Height: %d\nWidth: %d\n", height, width);
+    }
     // Matriz actual (estado)
     int **current = (int**)malloc(height*sizeof(int*));
     for(int i = 0; i < height; i++){
@@ -153,10 +171,12 @@ int main(){
 
     // Simulación por ticks
     double t0 = omp_get_wtime();
-    for(int tick = 0; tick <= TICKS; tick++){
+    for(int tick = 0; tick <= max_ticks; tick++){
         // Mostrar el estado actual y conteos
-        // print_matrix_and_counts(current, height, width, tick);
-        if(tick == TICKS) break; // no generamos siguiente estado después del último print
+        if(verbose==2){
+            print_matrix_and_counts(current, height, width, tick);
+        }
+        if(tick == max_ticks) break; // no generamos siguiente estado después del último print
 
         // next arranca vacío
         int **next = alloc2d(height,width);
@@ -349,8 +369,9 @@ int main(){
         free2d(hunCn, height);
     }
     double t1 = omp_get_wtime();
-    printf("\nTiempo total de simulacion: %.6f segundos\n", t1 - t0);
-
+    if(verbose>0){
+        printf("\nTiempo total de simulacion: %.6f segundos\n", t1 - t0);
+    }
     // Liberar todo
     free2d(eH,   height);
     free2d(eC,   height);

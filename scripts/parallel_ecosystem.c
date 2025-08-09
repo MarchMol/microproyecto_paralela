@@ -6,7 +6,6 @@
 #include <omp.h>
 
 #define MAX_LINE 1024
-#define TICKS 10000
 // Códigos de celda
 #define EMPTY 0
 #define PLANT 1
@@ -33,10 +32,10 @@ static inline int in_bounds(int i, int j, int h, int w){
 }
 
 // Fisher–Yates sobre 4 direcciones para evitar sesgo direccional
-static inline void shuffle_dirs(int ord[4]){
+static inline void shuffle_dirs(int ord[4], int seed){
     for(int k=0;k<4;k++) ord[k]=k;
     for(int k=3;k>0;k--){
-        int r = rand() % (k+1);
+        int r = rand_r(&seed) % (k+1);
         int t = ord[k]; ord[k]=ord[r]; ord[r]=t;
     }
 }
@@ -60,7 +59,6 @@ void cleanup(FILE *file, int **matrix, int height){
         free(matrix[i]);
     }
     free(matrix);
-    printf("Finished cleanup!\n");
 }
 
 void print_matrix_and_counts(int **matrix, int height, int width, int tick) {
@@ -78,20 +76,36 @@ void print_matrix_and_counts(int **matrix, int height, int width, int tick) {
         printf("\n");
     }
     printf("Plantas:%d  Herbivoros:%d  Carnivoros:%d\n", cntP, cntH, cntC);
-    printf("Saluda hilo %d\n",omp_get_thread_num());
     printf("Fin del tick %d\n\n", tick);
 }
 
-int main(){
+int main(int argc, char *argv[]){
+    // Argumentos
+    if(argc!=4){
+        printf("Wrong usage: %s <input path> <MAX_TICKS> <Verbose>\n", argv[0]);
+        return 1;
+    }
+
+    char *file_path = argv[1];
+    int max_ticks = atoi(argv[2]);
+    if(max_ticks<1){
+        printf("Ticks must be bigger or equal than 1\n");
+        return 1;
+    }
+    int verbose = atoi(argv[3]);
+    if(verbose<0 || verbose>2){
+        printf("Verbose must be either 0, 1 or 2\n");
+        return 1;
+    }
     srand((unsigned)time(NULL));
 
     // lectura del archivo de entrada
-    FILE *file = fopen("input.txt", "r");
+    FILE *file = fopen(file_path, "r");
     if(!file){
         perror("Opening input failed\n");
         return 1;
     }
-
+    
     int width = 0;
     int height = 0;
     char line[MAX_LINE];
@@ -107,9 +121,15 @@ int main(){
             }
         }
     }
+    
+    width+=2; // Padding
+    height+=2;
+    // Matriz actual (estado inicial)
     rewind(file);
-    printf("Height: %d\nWidth: %d\n", height, width);
-    // Matriz actual (estado)
+    if(verbose>1){
+        printf("Height: %d\nWidth: %d\n", height-2, width-2);
+    }
+    
     int **current = (int**)malloc(height*sizeof(int*));
     for(int i = 0; i < height; i++){
         current[i] = (int*)malloc(width*sizeof(int));
@@ -118,9 +138,9 @@ int main(){
     // Parseo
     int compliance = 0;
     char line2[MAX_LINE];
-    int row = 0;
+    int row = 1;
     while(fgets(line2, sizeof(line2), file) && row < height){
-        int col = 0;
+        int col = 1;
         char *token = strtok(line2, " \n");
         while(token != NULL && col < width){
             if(strcmp(token, "_") == 0 || strcmp(token, "-") == 0){
@@ -141,7 +161,6 @@ int main(){
         }
         row++;
     }
-
     if(compliance == 1){
         printf("Something went wrong when parsing input file!\n");
         cleanup(file, current, height);
@@ -155,43 +174,45 @@ int main(){
     // Simulación por ticks
     double t0 = omp_get_wtime();
     
-    omp_set_num_threads(8);
-    // omp_set_nested(1); 
 
-    #pragma omp parallel
-    {
-        for(int tick = 0; tick <= TICKS; tick++){
-            // Mostrar el estado actual y conteos
-            // print_matrix_and_counts(current, height, width, tick);
-            if(tick == TICKS) break; // no generamos siguiente estado después del último print
+    omp_set_nested(1); 
 
+    // #pragma omp parallel
+    // {
+        for(int tick = 0; tick <= max_ticks; tick++){
+            if(tick == max_ticks) break; // no generamos siguiente estado después del último print
+            if(verbose==2){
+                print_matrix_and_counts(current, height, width, tick);
+            }
+            
             // next arranca vacío
             int **next = alloc2d(height,width);
             int **eHn   = alloc2d(height,width), **eCn   = alloc2d(height,width);
             int **hunHn = alloc2d(height,width), **hunCn = alloc2d(height,width);
-
+            
             // PLANTAS: persistencia y reproducción
             // plantas en 'next' Si luego H/C pisan esa celda, la sobreescriben.
-            #pragma omp sections
+            unsigned int seed = (unsigned int)(omp_get_thread_num() + 1234);
+            #pragma omp sections 
             {
-                #pragma omp section
+                #pragma opm section 
                 {
-                    // #pragma omp parallel for
-                    for(int i = 0; i < height; i++){
-                        for(int j = 0; j < width; j++){
+                    #pragma omp collapse(2) nowait
+                    for(int i = 1; i < height-1; i++){
+                        for(int j = 1; j < width-1; j++){
+
                             if(current[i][j] == PLANT){
                                 // Planta persiste
                                 next[i][j] = PLANT;
-
                                 // Reproducción 4-dir a celdas vacías del estado ACTUAL
-                                int ord[4]; shuffle_dirs(ord);
+                                int r = rand_r(&seed) % 100;
+                                int ord[4]; shuffle_dirs(ord, seed);
                                 for(int k = 0; k < 4; k++){
                                     int d = ord[k];
                                     int ni = i + DX[d];
                                     int nj = j + DY[d];
-                                    if(!in_bounds(ni,nj,height,width)) continue;
                                     if(current[ni][nj] == EMPTY && next[ni][nj] == EMPTY){
-                                        if((rand() % 100) < PLANT_SPREAD_PCT){
+                                        if(r < PLANT_SPREAD_PCT){
                                             next[ni][nj] = PLANT;
                                         }
                                     }
@@ -201,22 +222,20 @@ int main(){
                     }
                 }
 
+        
                 // CARNÍVOROS: cazan H; si no, mueven a vacío; inanición y reproducción
                 #pragma omp section
                 {
-                    // #pragma omp parallel for
-                    for(int i = 0; i < height; i++){
-                        #pragma omp collapse(2)
-                        for(int j = 0; j < width; j++){
+                    #pragma omp collapse(2) nowait
+                    for(int i = 1; i < height -1; i++){
+                        for(int j = 1; j < width -1; j++){
                             if(current[i][j] != CARN) continue;
-
-                            int ord[4]; shuffle_dirs(ord);
+                            int ord[4]; shuffle_dirs(ord,seed);
                             int ti=i, tj=j; int moved=0, ate=0;
 
                             // a) Buscar H adyacente (cazar)
                             for(int k=0;k<4 && !moved;k++){
                                 int d=ord[k], ni=i+DX[d], nj=j+DY[d];
-                                if(!in_bounds(ni,nj,height,width)) continue;
                                 if(current[ni][nj]==HERB){
                                     ti=ni; tj=nj; moved=1; ate=1;
                                 }
@@ -225,7 +244,6 @@ int main(){
                             if(!moved){
                                 for(int k=0;k<4 && !moved;k++){
                                     int d=ord[k], ni=i+DX[d], nj=j+DY[d];
-                                    if(!in_bounds(ni,nj,height,width)) continue;
                                     if(next[ni][nj]==EMPTY || next[ni][nj]==PLANT){ ti=ni; tj=nj; moved=1; } //mover a vacío (en next)
                                 }
                             }
@@ -246,7 +264,7 @@ int main(){
 
                             // Reproducción si alcanzó umbral y hay espacio
                             if(energy >= C_REPRO_THRESH){
-                                int babyPlaced=0; int ord2[4]; shuffle_dirs(ord2);
+                                int babyPlaced=0; int ord2[4]; shuffle_dirs(ord2, seed);
                                 for(int kk=0;kk<4;kk++){
                                     int d=ord2[kk], bi=ti+DX[d], bj=tj+DY[d];
                                     if(!in_bounds(bi,bj,height,width)) continue;
@@ -266,28 +284,27 @@ int main(){
                     }
                 }
 
+
+                // HERBÍVOROS: escapan si hay C, si no, comen P; si no, mueven a vacío, inanición y reproducción
                 #pragma omp section
                 {
-                    // HERBÍVOROS: escapan si hay C, si no, comen P; si no, mueven a vacío, inanición y reproducción
-                    // #pragma omp parallel for
-                    for(int i = 0; i < height; i++){
-                        #pragma omp collapse(2)
-                        for(int j = 0; j < width; j++){
+                    #pragma omp collapse(2) nowait
+                    for(int i = 1; i < height -1; i++){
+                        for(int j = 1; j < width-1; j++){
                             if(current[i][j] != HERB) continue;
 
-                            int ord[4]; shuffle_dirs(ord);
+                            int ord[4]; shuffle_dirs(ord, seed);
                             int ti=i, tj=j; int moved=0, ate=0;
 
                             // a) ¿Peligro? (C adyacente) -> escapar a vacío
                             int danger=0;
                             for(int k=0;k<4;k++){
                                 int ni=i+DX[k], nj=j+DY[k];
-                                if(in_bounds(ni,nj,height,width) && current[ni][nj]==CARN){ danger=1; break; }
+                                if(current[ni][nj]==CARN){ danger=1; break; }
                             }
                             if(danger){
                                 for(int k=0;k<4 && !moved;k++){
                                     int d=ord[k], ni=i+DX[d], nj=j+DY[d];
-                                    if(!in_bounds(ni,nj,height,width)) continue;
                                     if(next[ni][nj]==EMPTY || next[ni][nj]==PLANT){ ti=ni; tj=nj; moved=1; } // huir si hay C
                                 }
                             }
@@ -296,7 +313,6 @@ int main(){
                             if(!moved){
                                 for(int k=0;k<4 && !moved;k++){
                                     int d=ord[k], ni=i+DX[d], nj=j+DY[d];
-                                    if(!in_bounds(ni,nj,height,width)) continue;
                                     if(current[ni][nj]==PLANT && next[ni][nj]!=CARN){
                                         ti=ni; tj=nj; moved=1; ate=1;
                                     }
@@ -307,7 +323,6 @@ int main(){
                             if(!moved){
                                 for(int k=0;k<4 && !moved;k++){
                                     int d=ord[k], ni=i+DX[d], nj=j+DY[d];
-                                    if(!in_bounds(ni,nj,height,width)) continue;
                                     if(next[ni][nj]==EMPTY || next[ni][nj]==PLANT){ ti=ni; tj=nj; moved=1; } //moverse a vacío si no comió
                                 }
                             }
@@ -330,7 +345,7 @@ int main(){
 
                                 // Reproducción si alcanzó umbral y hay espacio
                                 if(energy >= H_REPRO_THRESH){
-                                    int babyPlaced=0; int ord2[4]; shuffle_dirs(ord2);
+                                    int babyPlaced=0; int ord2[4]; shuffle_dirs(ord2, seed);
                                     for(int kk=0;kk<4;kk++){
                                         int d=ord2[kk], bi=ti+DX[d], bj=tj+DY[d];
                                         if(!in_bounds(bi,bj,height,width)) continue;
@@ -352,8 +367,6 @@ int main(){
                 }
             }
             #pragma omp barrier
-
-
             // Intercambio de buffers: current <- next
             for(int i=0;i<height;i++){
                 memcpy(current[i], next[i], width*sizeof(int));
@@ -374,12 +387,14 @@ int main(){
             free2d(hunHn, height);
             free2d(hunCn, height);
         }
+    // }
+    
+    // Impresion de tiempo
+    double t1 = omp_get_wtime();
+    if(verbose>0){
+        printf("\nTiempo total de simulacion: %.6f segundos\n", t1 - t0);
     }
     
-
-    double t1 = omp_get_wtime();
-    printf("\nTiempo total de simulacion: %.6f segundos\n", t1 - t0);
-
     // Liberar todo
     free2d(eH,   height);
     free2d(eC,   height);

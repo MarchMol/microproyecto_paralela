@@ -13,3 +13,6 @@ El arhivo txt tiene el siguiente formato:
 1 -> Ocupado por planta
 2 -> Ocupado por herviboro
 3 -> 0cupado por carnivoro
+
+### Settings.txt
+El archivo settings.txt almacena informacion al respecto
