@@ -18,14 +18,14 @@ def tick_test(parallel, sequential):
         
         # result = subprocess.run([f"./{sexe}", "test.txt",f"{ticks}", "1"], check=True)
         matches = re.findall(pattern, result.stdout)[0]
-        print(f"{matches}")
+        print(f"{ticks}\t{matches}")
     print("\nSequential\nTicks | Time")
     compile_cmd = ["gcc","-fopenmp", ssource, "-o", sexe]
     subprocess.run(compile_cmd, check=True)
     for ticks in [10, 50, 100, 500, 1000, 5000, 10000, 20000]:
         result = subprocess.run([f"./{sexe}", "data/test.txt",f"{ticks}", "1"],capture_output=True,text=True, check=True)
         matches = re.findall(pattern, result.stdout)[0]
-        print(f"{matches}")
+        print(f"{ticks}\t{matches}")
 
 def size_test(parallel, sequential):
     psource = parallel[0]
@@ -41,7 +41,7 @@ def size_test(parallel, sequential):
         generador.generate(x, x, "data/test.txt")
         result = subprocess.run([f"./{pexe}", "data/test.txt","50", "1"],capture_output=True, text=True, check=True)
         matches = re.findall(pattern, result.stdout)[0]
-        print(f"{matches}")
+        print(f"{x}\t{matches}")
     
     print("\nSequential\nTicks | Time")
     compile_cmd = ["gcc","-fopenmp", ssource, "-o", sexe]
@@ -49,7 +49,7 @@ def size_test(parallel, sequential):
         generador.generate(x, x, "data/test.txt")
         result = subprocess.run([f"./{sexe}", "data/test.txt","50", "1"],capture_output=True, text=True, check=True)
         matches = re.findall(pattern, result.stdout)[0]
-        print(f"{matches}")
+        print(f"{x}\t{matches}")
     
     
 def main():
