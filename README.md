@@ -23,6 +23,7 @@ Los programas tanto secuencial como paralelizado, debido a que implementan el mi
   - 0 -> No imprimira nada
   - 1 -> Imprimira solo el tiempo de ejecucion
   - 2 -> imprimira los estados del ecosistema en cada tick, el tiempo de ejecucion, y la completacion de funciones auxiliares como el reconocimiento del tamaño de la entrada.
+  - 3 -> guarda el contenido relevante de las iteraciones dentro de un archivo en la direccion ```scripts/out/<name>.txt```
 
 ### Testing
 Para correr los 2 archivos de testing se requiere de la siguiente sintaxis

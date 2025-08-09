@@ -79,6 +79,23 @@ void print_matrix_and_counts(int **matrix, int height, int width, int tick) {
     printf("Fin del tick %d\n", tick);
 }
 
+void save_matrix_and_counts(int **matrix, int height, int width, int tick) {
+    int cntP=0,cntH=0,cntC=0;
+    printf("\n--- Tick %d ---\n", tick);
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            int v = matrix[i][j];
+            if(v == EMPTY) printf(" - ");
+            else if(v == PLANT){ printf(" P "); cntP++; }
+            else if(v == HERB ){ printf(" H "); cntH++; }
+            else if(v == CARN ){ printf(" C "); cntC++; }
+        }
+        printf("\n");
+    }
+    printf("Plantas:%d  Herbivoros:%d  Carnivoros:%d\n", cntP, cntH, cntC);
+    printf("Fin del tick %d\n\n", tick);
+}
+
 int main(int argc, char *argv[]){
     // Argumentos
         if(argc!=4){
@@ -93,11 +110,14 @@ int main(int argc, char *argv[]){
         return 1;
     }
     int verbose = atoi(argv[3]);
-    if(verbose<0 || verbose>2){
+    if(verbose<0 || verbose>3){
         printf("Verbose must be either 0, 1 or 2\n");
         return 1;
     }
 
+    if(verbose==3){
+        freopen("out/seq_output.txt", "w", stdout);
+    }
     srand((unsigned)time(NULL));
 
     // lectura del archivo de entrada
@@ -175,6 +195,9 @@ int main(int argc, char *argv[]){
         // Mostrar el estado actual y conteos
         if(verbose==2){
             print_matrix_and_counts(current, height, width, tick);
+        }
+        if(verbose==3){
+            save_matrix_and_counts(current, height, width, tick);
         }
         if(tick == max_ticks) break; // no generamos siguiente estado después del último print
 

@@ -1,0 +1,64 @@
+Height: 5
+Width: 5
+
+--- Tick 0 ---
+ P  -  C  H  C 
+ P  -  P  -  C 
+ P  -  -  H  H 
+ H  C  H  -  - 
+ P  -  H  C  - 
+Plantas:5  Herbivoros:6  Carnivoros:5
+Fin del tick 0
+
+
+--- Tick 1 ---
+ P  -  C  C  H 
+ P  -  P  C  C 
+ P  -  H  H  C 
+ C  C  H  H  - 
+ H  -  C  C  - 
+Plantas:4  Herbivoros:6  Carnivoros:9
+Fin del tick 1
+
+
+--- Tick 2 ---
+ P  -  -  C  C 
+ P  -  C  C  C 
+ P  H  C  C  H 
+ H  H  C  C  H 
+ C  C  C  C  - 
+Plantas:3  Herbivoros:5  Carnivoros:13
+Fin del tick 2
+
+
+--- Tick 3 ---
+ P  -  -  -  C 
+ P  P  -  C  C 
+ P  C  C  C  C 
+ C  C  C  C  C 
+ C  C  C  C  - 
+Plantas:4  Herbivoros:0  Carnivoros:16
+Fin del tick 3
+
+
+--- Tick 4 ---
+ P  P  -  C  C 
+ P  P  P  -  C 
+ P  C  C  C  C 
+ -  C  C  C  C 
+ C  C  C  C  C 
+Plantas:6  Herbivoros:0  Carnivoros:16
+Fin del tick 4
+
+
+--- Tick 5 ---
+ P  P  -  C  - 
+ P  P  C  C  C 
+ P  -  C  -  C 
+ P  -  C  C  C 
+ C  C  C  C  C 
+Plantas:6  Herbivoros:0  Carnivoros:14
+Fin del tick 5
+
+
+Tiempo total de simulacion: 0.000033 segundos
